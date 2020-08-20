@@ -42,35 +42,45 @@ def getGradient(orientation):
     
 def getMaxX(ROI):
     maxX = 0
+    outerPoint = (0,0)
+    
     for point in ROI:
         if(point[0] > maxX):
             maxX = point[0]
+            outerPoint = point
             
-    return maxX
+    return outerPoint
 
 def getMinX(ROI):
     minX = 1000
+    outerPoint = (1000, 1000)
+    
     for point in ROI:
         if(point[0] < minX):
             minX = point[0]
+            outerPoint = point
             
-    return minX
+    return outerPoint
 
 def getMaxY(ROI):
     maxY = 0
+    outerPoint = (0,0)
     for point in ROI:
         if(point[1] > maxY):
             maxY = point[1]
+            outerPoint = point
             
-    return maxY
+    return outerPoint
 
 def getMinY(ROI):
     minY = 1000
+    outerPoint = (1000, 1000)
     for point in ROI:
         if(point[1] < minY):
             minY = point[1]
+            outerPoint = point
             
-    return minY
+    return outerPoint
 
 def getROILines(ROI):
     ROILines = []
@@ -87,23 +97,70 @@ def getROILines(ROI):
 def getScanLines(ROI, gradient, display = False):
     scanLines = []
     
-    for i in range(8):    
-        x1 = getMinX(ROI)
-        y1 = getMinY(ROI)+clearance*(i)
+    distanceToOuterPoint = -1000
+    counter = 0
+    
+    while (distanceToOuterPoint < 0):    
+        x1 = getMinX(ROI)[0]
+        y1 = getMinY(ROI)[1]+clearance*(counter)
         point1 = (x1, y1)
-        x2 = getMaxX(ROI)
-        point2 = (x2, gradient*x2 + clearance*(i))
+        x2 = getMaxX(ROI)[0]
+        point2 = (x2, gradient*x2 + clearance*(counter))
         
         x = [point1[0], point2[0]]
         y = [point1[1], point2[1]]
         
-        scanLines.append((point1, point2))
+        line = (point1, point2)
+        scanLines.append(line)
+        
+        distanceToOuterPoint = getDistanceLineToPoint(line, getMaxY(ROI))
+        
+        counter+=1
         
         if (display):
             plt.plot(x, y, "-b.", linewidth = 2, markersize = 10)
             plt.title("Grid Scan Waypoint Generator")
             plt.xlabel("x-axis")
             plt.ylabel("y-axis")
+
+    bottomSideIsNotScanned = False
+          
+    maxDistance = 0
+    maxPoint = (0,0)
+    for point in ROI:
+        distanceToPoints = getDistanceLineToPoint(scanLines[0],point)
+        
+        if (distanceToPoints > 0.5):
+            bottomSideIsNotScanned = (bottomSideIsNotScanned or True)
+            if (distanceToPoints > maxDistance):
+                maxDistance = distanceToPoints
+                maxPoint = point
+            
+    if (bottomSideIsNotScanned):
+        distanceToOuterPoint = 1000
+        counter = 1
+        while (distanceToOuterPoint > 0.5):
+            x1 = getMinX(ROI)[0]
+            y1 = getMinY(ROI)[1]-clearance*(counter)
+            point1 = (x1, y1)
+            x2 = getMaxX(ROI)[0]
+            point2 = (x2, gradient*x2 - clearance*(counter))
+
+            x = [point1[0], point2[0]]
+            y = [point1[1], point2[1]]
+            
+            line = (point1, point2)
+            scanLines.append(line)
+            
+            distanceToOuterPoint = getDistanceLineToPoint(line, maxPoint)
+            
+            counter+=1
+            
+            if (display):
+                plt.plot(x, y, "-b.", linewidth = 2, markersize = 10)
+                plt.title("Grid Scan Waypoint Generator")
+                plt.xlabel("x-axis")
+                plt.ylabel("y-axis")
     
     return scanLines
     
@@ -122,6 +179,16 @@ def getIntersectionPoint(line1, line2):
 
     return xIntersect, yIntersect
 
+def getDistanceLineToPoint(line, point):
+    x0, y0 = point
+    x1, y1 = line[0]
+    x2, y2 = line[1]
+    
+    numerator = (y2-y1)*x0 - (x2-x1)*y0 + x2*y1 - y2*x1
+    denum = distance((x1, y1), (x2, y2))
+
+    return numerator/denum
+    
 def distance(point1, point2):
     diffX = point1[0] - point2[0]
     diffY = point1[1] - point2[1]
@@ -130,7 +197,7 @@ def distance(point1, point2):
     
     
 def pointIsInScanLine(point, line):
-    tolerance = 0.00001
+    tolerance = 0.001
     
     point1 = line[0]
     point2 = line[1]
@@ -212,5 +279,5 @@ def main(ROI, orientation = None):
 
         
 if __name__ == "__main__":
-    ROI = [(0.1,0.1), (0.5,0.1), (2.1,3), (0.75,4), (0,2)]
+    ROI = [(2,-1), (2.1,3), (0.75,5), (0,2), (0.1,-1.1)]
     main(ROI, deg2rad(40))
