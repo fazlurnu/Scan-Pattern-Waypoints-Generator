@@ -6,7 +6,7 @@ Created on Tue Aug 18 22:11:01 2020
 """
 
 import matplotlib.pyplot as plt
-from math import atan2, tan, sqrt, pow
+from math import atan2, tan, sqrt, pow, cos, sin
 from numpy import rad2deg, deg2rad
 
 clearance = 0.5
@@ -19,6 +19,7 @@ def drawROI(ROI):
         x.append(points[0])
         y.append(points[1])
         
+    plt
     plt.plot(x, y, "-c.", linewidth = 2, markersize = 10)
     plt.title("Grid Scan Waypoint Generator")
     plt.xlabel("x-axis")
@@ -94,18 +95,22 @@ def getROILines(ROI):
 
     return ROILines
 
-def getScanLines(ROI, gradient, display = False):
+def getScanLines(ROI, orientation, display = False):
     scanLines = []
     
     distanceToOuterPoint = -1000
     counter = 0
     
+    gradient = getGradient(orientation)
+    
     while (distanceToOuterPoint < 0):    
         x1 = getMinX(ROI)[0]
-        y1 = getMinY(ROI)[1]+clearance*(counter)
-        point1 = (x1, y1)
+        y1 = getMinY(ROI)[1]+clearance*counter
         x2 = getMaxX(ROI)[0]
-        point2 = (x2, gradient*x2 + clearance*(counter))
+        y2 = gradient*x2 + clearance*(counter)
+        
+        point1 = (x1, y1)
+        point2 = (x2, y2)
         
         x = [point1[0], point2[0]]
         y = [point1[1], point2[1]]
@@ -139,7 +144,7 @@ def getScanLines(ROI, gradient, display = False):
     if (bottomSideIsNotScanned):
         distanceToOuterPoint = 1000
         counter = 1
-        while (distanceToOuterPoint > 0.5):
+        while (distanceToOuterPoint > 0.25):
             x1 = getMinX(ROI)[0]
             y1 = getMinY(ROI)[1]-clearance*(counter)
             point1 = (x1, y1)
@@ -267,10 +272,8 @@ def main(ROI, orientation = None):
     if(orientation==None):
         orientation = getOrientation(ROI)
         
-    gradient = getGradient(orientation)
-    
     drawROI(ROI)
-    scanLines = getScanLines(ROI, gradient, display=False)
+    scanLines = getScanLines(ROI, orientation, display=False)
     ROILines = getROILines(ROI)
     intersectionPoints = getIntersectionPoints(ROILines, scanLines)
     waypoints = getWaypoints(intersectionPoints)
@@ -280,4 +283,7 @@ def main(ROI, orientation = None):
         
 if __name__ == "__main__":
     ROI = [(2,-1), (2.1,3), (0.75,5), (0,2), (0.1,-1.1)]
-    main(ROI, deg2rad(40))
+    
+    for i in range(10, 80, 10):
+        fig = plt.figure(str(i))
+        main(ROI, deg2rad(i))
