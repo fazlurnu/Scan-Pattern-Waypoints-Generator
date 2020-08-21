@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from math import atan2, tan, sqrt, pow, cos, sin
 from numpy import rad2deg, deg2rad
 
-clearance = 0.5
+clearance = 2
 
 def drawROI(ROI):
     x = []
@@ -39,7 +39,7 @@ def getGradient(orientation):
     if tan(orientation) != 0:
         return tan(orientation)
     else:
-        return tan(orientation) + 0.00001
+        return tan(orientation)
     
 def getMaxX(ROI):
     maxX = 0
@@ -177,7 +177,11 @@ def getIntersectionPoint(line1, line2):
 
     numeratorX = (x1*y2-y1*x2)*(x3-x4) - (x1-x2)*(x3*y4-y3*x4)
     numeratorY = (x1*y2-y1*x2)*(y3-y4) - (y1-y2)*(x3*y4-y3*x4)
+    
     denum = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)
+    
+    if (denum == 0):
+        denum = 1
 
     xIntersect = numeratorX/denum
     yIntersect = numeratorY/denum
@@ -202,7 +206,7 @@ def distance(point1, point2):
     
     
 def pointIsInScanLine(point, line):
-    tolerance = 0.001
+    tolerance = 0.0001
     
     point1 = line[0]
     point2 = line[1]
@@ -226,7 +230,8 @@ def getIntersectionPoints(ROILines, scanLines, display = False):
             cond2 = pointIsInScanLine(intersectionPoint, ROILines[j])
             
             if (cond and cond2):
-                intersectionPoints.append(intersectionPoint)
+                if (intersectionPoint not in intersectionPoints):
+                    intersectionPoints.append(intersectionPoint)
                 
                 if (display):
                     plt.plot(intersectionPoint[0], intersectionPoint[1], "g*")
@@ -236,31 +241,33 @@ def getIntersectionPoints(ROILines, scanLines, display = False):
                 
     return intersectionPoints
 
-def getWaypoints(intersectionPoints):
+def getWaypoints(intersectionPoints, display = True):
     waypoints = []
-    counter = 0
-    while(len(intersectionPoints) > 0):
+    counter = 1
+    while(len(intersectionPoints) > 1):
         if (counter % 2 == 0):
             point1 = intersectionPoints.pop(1)
             point2 = intersectionPoints.pop(0)
-            
         else:
             point1 = intersectionPoints.pop(0)
             point2 = intersectionPoints.pop(0)
             
-        waypoints.append(point1)
-        waypoints.append(point2)
+        if (point1 not in waypoints):
+            waypoints.append(point1)
+        if (point2 not in waypoints):
+            waypoints.append(point2)
         
         counter+=1
     
-    for i in range(len(waypoints) - 1):
-        x1,y1 = waypoints[i]
-        x2,y2 = waypoints[i+1]
-        
-        plt.plot([x1,x2], [y1,y2], "-k*")
-        index = str(i)
-        
-        plt.text(x1+0.01, y1+0.01, s = index, color = 'b')
+    if (display):
+        for i in range(len(waypoints)):
+            x1,y1 = waypoints[i]
+            x2,y2 = waypoints[i+1]
+            
+            plt.plot([x1,x2], [y1,y2], "-k*")
+            index = str(i)
+            
+            plt.text(x1+0.01, y1+0.01, s = index, color = 'b')
         
     return waypoints
 
@@ -275,15 +282,16 @@ def main(ROI, orientation = None):
     drawROI(ROI)
     scanLines = getScanLines(ROI, orientation, display=False)
     ROILines = getROILines(ROI)
-    intersectionPoints = getIntersectionPoints(ROILines, scanLines)
-    waypoints = getWaypoints(intersectionPoints)
+    intersectionPoints = getIntersectionPoints(ROILines, scanLines, display=False)
+    waypoints = getWaypoints(intersectionPoints, display=True)
     #print(intersectionPoints)
     
 
         
 if __name__ == "__main__":
-    ROI = [(2,-1), (2.1,3), (0.75,5), (0,2), (0.1,-1.1)]
+    #ROI = [(2,-2), (2.8,3), (0.75,5), (0,2), (0.1,-1.1)]
+    ROI = [(0,0), (20, 0), (20, 20), (0,20)]
+    #for i in range(10, 80, 10):
+    #    fig = plt.figure(str(i))
     
-    for i in range(10, 80, 10):
-        fig = plt.figure(str(i))
-        main(ROI, deg2rad(i))
+    main(ROI, deg2rad(10))
