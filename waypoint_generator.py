@@ -7,6 +7,7 @@ Created on Tue Aug 18 22:11:01 2020
 
 import matplotlib.pyplot as plt
 from math import atan2, tan, sqrt, pow, cos, sin
+from math import pi as M_PI
 from numpy import rad2deg, deg2rad
 
 clearance = 2
@@ -19,7 +20,6 @@ def drawROI(ROI):
         x.append(points[0])
         y.append(points[1])
         
-    plt
     plt.plot(x, y, "-c.", linewidth = 2, markersize = 10)
     plt.title("Grid Scan Waypoint Generator")
     plt.xlabel("x-axis")
@@ -99,35 +99,43 @@ def getScanLines(ROI, orientation, display = False):
     scanLines = []
     
     distanceToOuterPoint = -1000
+
+    length = (getMaxX(ROI)[0] - getMinX(ROI)[0])
+
     counter = 0
     
-    gradient = getGradient(orientation)
+    xStart = getMinX(ROI)[0]
+    yStart = getMinY(ROI)[1]
     
-    while (distanceToOuterPoint < 0):    
-        x1 = getMinX(ROI)[0]
-        y1 = getMinY(ROI)[1]+clearance*counter
-        x2 = getMaxX(ROI)[0]
-        y2 = gradient*x2 + clearance*(counter)
+    x2 = xStart + length * cos(orientation)
+    y2 = yStart + length * sin(orientation)
+    
+    line1 = [(xStart,yStart), (x2, y2)]
+    scanLines.append(line1)
+    
+    while (distanceToOuterPoint < 0):            
+        scanLines.append([])
+        counter += 1
         
-        point1 = (x1, y1)
-        point2 = (x2, y2)
+        for point in line1:
+            x1, y1 = point
+            x2 = x1 + counter * clearance * cos(orientation + M_PI/2)
+            y2 = y1 + counter * clearance * sin(orientation + M_PI/2)
+            
+            scanLines[counter].append((x2, y2))
         
-        x = [point1[0], point2[0]]
-        y = [point1[1], point2[1]]
-        
-        line = (point1, point2)
-        scanLines.append(line)
-        
-        distanceToOuterPoint = getDistanceLineToPoint(line, getMaxY(ROI))
-        
-        counter+=1
+        distanceToOuterPoint = getDistanceLineToPoint(scanLines[counter], getMaxY(ROI))
         
         if (display):
-            plt.plot(x, y, "-b.", linewidth = 2, markersize = 10)
-            plt.title("Grid Scan Waypoint Generator")
-            plt.xlabel("x-axis")
-            plt.ylabel("y-axis")
+            for line in scanLines:
+                x = (line[0][0], line[1][0])
+                y = (line[0][1], line[1][1])
+                plt.plot(x, y, "-b.", linewidth = 2, markersize = 10)
+                plt.title("Grid Scan Waypoint Generator")
+                plt.xlabel("x-axis")
+                plt.ylabel("y-axis")
 
+    print(scanLines)
     bottomSideIsNotScanned = False
           
     maxDistance = 0
@@ -144,6 +152,7 @@ def getScanLines(ROI, orientation, display = False):
     if (bottomSideIsNotScanned):
         distanceToOuterPoint = 1000
         counter = 1
+        
         while (distanceToOuterPoint > 0.25):
             x1 = getMinX(ROI)[0]
             y1 = getMinY(ROI)[1]-clearance*(counter)
@@ -260,7 +269,7 @@ def getWaypoints(intersectionPoints, display = True):
         counter+=1
     
     if (display):
-        for i in range(len(waypoints)):
+        for i in range(len(waypoints) - 1 ):
             x1,y1 = waypoints[i]
             x2,y2 = waypoints[i+1]
             
@@ -280,18 +289,18 @@ def main(ROI, orientation = None):
         orientation = getOrientation(ROI)
         
     drawROI(ROI)
-    scanLines = getScanLines(ROI, orientation, display=False)
+    scanLines = getScanLines(ROI, orientation, display=True)
     ROILines = getROILines(ROI)
     intersectionPoints = getIntersectionPoints(ROILines, scanLines, display=False)
-    waypoints = getWaypoints(intersectionPoints, display=True)
+    waypoints = getWaypoints(intersectionPoints, display=False)
     #print(intersectionPoints)
     
 
         
 if __name__ == "__main__":
-    #ROI = [(2,-2), (2.8,3), (0.75,5), (0,2), (0.1,-1.1)]
-    ROI = [(0,0), (20, 0), (20, 20), (0,20)]
+    ROI = [(2,-2), (2.8,3), (0.75,5), (0,2), (0.1,-1.1)]
+    #ROI = [(0,0), (20, 0), (20, 20), (0,20)]
     #for i in range(10, 80, 10):
     #    fig = plt.figure(str(i))
     
-    main(ROI, deg2rad(10))
+    main(ROI, deg2rad(90))
