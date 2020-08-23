@@ -10,7 +10,7 @@ from math import atan2, tan, sqrt, pow, cos, sin
 from math import pi as M_PI
 from numpy import rad2deg, deg2rad
 
-clearance = 2
+clearance = 0.6
 
 def drawROI(ROI):
     x = []
@@ -100,12 +100,12 @@ def getScanLines(ROI, orientation, display = False):
     
     distanceToOuterPoint = -1000
 
-    length = (getMaxX(ROI)[0] - getMinX(ROI)[0])
+    length = 3*(getMaxX(ROI)[0] - getMinX(ROI)[0])
 
     counter = 0
     
-    xStart = getMinX(ROI)[0]
-    yStart = getMinY(ROI)[1]
+    xStart = getMinX(ROI)[0] + (clearance/2)
+    yStart = getMinY(ROI)[1] + (clearance/10)
     
     x2 = xStart + length * cos(orientation)
     y2 = yStart + length * sin(orientation)
@@ -135,14 +135,14 @@ def getScanLines(ROI, orientation, display = False):
                 plt.xlabel("x-axis")
                 plt.ylabel("y-axis")
 
-    print(scanLines)
     bottomSideIsNotScanned = False
           
     maxDistance = 0
     maxPoint = (0,0)
+    
     for point in ROI:
         distanceToPoints = getDistanceLineToPoint(scanLines[0],point)
-        
+#        
         if (distanceToPoints > 0.5):
             bottomSideIsNotScanned = (bottomSideIsNotScanned or True)
             if (distanceToPoints > maxDistance):
@@ -151,30 +151,52 @@ def getScanLines(ROI, orientation, display = False):
             
     if (bottomSideIsNotScanned):
         distanceToOuterPoint = 1000
-        counter = 1
-        
-        while (distanceToOuterPoint > 0.25):
-            x1 = getMinX(ROI)[0]
-            y1 = getMinY(ROI)[1]-clearance*(counter)
-            point1 = (x1, y1)
-            x2 = getMaxX(ROI)[0]
-            point2 = (x2, gradient*x2 - clearance*(counter))
+        counter = 0
 
-            x = [point1[0], point2[0]]
-            y = [point1[1], point2[1]]
-            
-            line = (point1, point2)
-            scanLines.append(line)
-            
+        while (distanceToOuterPoint > 0.25):            
+            line = []
+            counter += 1
+            for point in line1:
+                x1, y1 = point
+                x2 = x1 - counter * clearance * cos(orientation + M_PI/2)
+                y2 = y1 - counter * clearance * sin(orientation + M_PI/2)
+                
+                line.append((x2, y2))
+                scanLines.append(line)
+                
             distanceToOuterPoint = getDistanceLineToPoint(line, maxPoint)
-            
-            counter+=1
-            
+        
             if (display):
-                plt.plot(x, y, "-b.", linewidth = 2, markersize = 10)
-                plt.title("Grid Scan Waypoint Generator")
-                plt.xlabel("x-axis")
-                plt.ylabel("y-axis")
+                for line in scanLines:
+                    x = (line[0][0], line[1][0])
+                    y = (line[0][1], line[1][1])
+                    plt.plot(x, y, "-b.", linewidth = 2, markersize = 10)
+                    plt.title("Grid Scan Waypoint Generator")
+                    plt.xlabel("x-axis")
+                    plt.ylabel("y-axis")
+                
+#        while (distanceToOuterPoint > 0.25):
+#            x1 = getMinX(ROI)[0]
+#            y1 = getMinY(ROI)[1]-clearance*(counter)
+#            point1 = (x1, y1)
+#            x2 = getMaxX(ROI)[0]
+#            point2 = (x2, gradient*x2 - clearance*(counter))
+#
+#            x = [point1[0], point2[0]]
+#            y = [point1[1], point2[1]]
+#            
+#            line = (point1, point2)
+#            scanLines.append(line)
+#            
+#            distanceToOuterPoint = getDistanceLineToPoint(line, maxPoint)
+#            
+#            counter+=1
+#            
+#            if (display):
+#                plt.plot(x, y, "-b.", linewidth = 2, markersize = 10)
+#                plt.title("Grid Scan Waypoint Generator")
+#                plt.xlabel("x-axis")
+#                plt.ylabel("y-axis")
     
     return scanLines
     
@@ -215,7 +237,7 @@ def distance(point1, point2):
     
     
 def pointIsInScanLine(point, line):
-    tolerance = 0.0001
+    tolerance = 0.01
     
     point1 = line[0]
     point2 = line[1]
@@ -230,6 +252,7 @@ def pointIsInScanLine(point, line):
     
 def getIntersectionPoints(ROILines, scanLines, display = False):
     intersectionPoints = []
+    tolerance = 0.01
     
     for i in range(len(scanLines)):
         for j in range(len(ROILines)):
@@ -239,13 +262,21 @@ def getIntersectionPoints(ROILines, scanLines, display = False):
             cond2 = pointIsInScanLine(intersectionPoint, ROILines[j])
             
             if (cond and cond2):
-                if (intersectionPoint not in intersectionPoints):
+                isInIntersectionPoints = False
+                
+                for point in intersectionPoints:
+                    pointDistance = distance(intersectionPoint, point)
+                    
+                    if (pointDistance < tolerance):
+                        isInIntersectionPoints = isInIntersectionPoints or True
+                        
+                if (not isInIntersectionPoints):
                     intersectionPoints.append(intersectionPoint)
                 
                 if (display):
                     plt.plot(intersectionPoint[0], intersectionPoint[1], "g*")
                 
-                    index = str(len(intersectionPoints))
+                    index = str(i) + ", " + str(j)
                     plt.text(intersectionPoint[0]+0.01, intersectionPoint[1]+0.01, s = index)
                 
     return intersectionPoints
@@ -274,6 +305,9 @@ def getWaypoints(intersectionPoints, display = True):
             x2,y2 = waypoints[i+1]
             
             plt.plot([x1,x2], [y1,y2], "-k*")
+            clearanceDisplay = 0.5
+            rangePlot = [getMinX(ROI)[0]- clearanceDisplay, getMaxX(ROI)[0] + clearanceDisplay, getMinY(ROI)[1] - clearanceDisplay, getMaxY(ROI)[1] + clearanceDisplay]
+            plt.axis(rangePlot)
             index = str(i)
             
             plt.text(x1+0.01, y1+0.01, s = index, color = 'b')
@@ -291,7 +325,7 @@ def main(ROI, orientation = None):
     drawROI(ROI)
     scanLines = getScanLines(ROI, orientation, display=True)
     ROILines = getROILines(ROI)
-    intersectionPoints = getIntersectionPoints(ROILines, scanLines, display=False)
+    intersectionPoints = getIntersectionPoints(ROILines, scanLines, display=True)
     waypoints = getWaypoints(intersectionPoints, display=False)
     #print(intersectionPoints)
     
