@@ -145,26 +145,36 @@ def getScanLines(ROI, orientation, display = False):
         
         outerScanLines1 = scanLinesTop[-1]
         distanceScanlineToCentroid = abs(getDistanceLineToPoint(outerScanLines1, centroidPoint))
-        print(distanceScanlineToCentroid, maxDistance)
         
-        if (display):
-            for line in scanLinesTop:
-                x = (line[0][0], line[1][0])
-                y = (line[0][1], line[1][1])
-                plt.plot(x, y, "-b.", linewidth = 2, markersize = 10)
-                plt.title("Grid Scan Waypoint Generator")
-                plt.xlabel("x-axis")
-                plt.ylabel("y-axis")
-                
-            for line in scanLinesDown:
-                x = (line[0][0], line[1][0])
-                y = (line[0][1], line[1][1])
-                plt.plot(x, y, "-g.", linewidth = 2, markersize = 10)
-                plt.title("Grid Scan Waypoint Generator")
-                plt.xlabel("x-axis")
-                plt.ylabel("y-axis")
+    scanLinesTopReversed = []
     
-    return scanLinesTop + scanLinesDown
+    for i in range(len(scanLinesTop)-1, -1, -1):
+        scanLinesTopReversed.append(scanLinesTop[i])
+        
+    if (display):
+        for i, line in enumerate(scanLinesTopReversed):
+            x = (line[0][0], line[1][0])
+            y = (line[0][1], line[1][1])
+            plt.plot(x, y, "-b.", linewidth = 2, markersize = 10)
+            plt.title("Grid Scan Waypoint Generator")
+            plt.xlabel("x-axis")
+            plt.ylabel("y-axis")
+            
+            index = (i)
+            plt.text(x[0]+0.01, y[0]+0.01, s = index)
+            
+        for i, line in enumerate(scanLinesDown):
+            x = (line[0][0], line[1][0])
+            y = (line[0][1], line[1][1])
+            plt.plot(x, y, "-g.", linewidth = 2, markersize = 10)
+            plt.title("Grid Scan Waypoint Generator")
+            plt.xlabel("x-axis")
+            plt.ylabel("y-axis")
+            
+            index = (i)
+            plt.text(x[0]+0.01, y[0]+0.01, s = index)
+    
+    return scanLinesTopReversed + scanLinesDown
     
 def getCentroid(ROI):
     xTotal = 0
@@ -255,6 +265,7 @@ def getIntersectionPoints(ROILines, scanLines, display = False):
                     plt.plot(intersectionPoint[0], intersectionPoint[1], "g*")
                 
                     index = str(i) + ", " + str(j)
+                    print(intersectionPoint)
                     plt.text(intersectionPoint[0]+0.01, intersectionPoint[1]+0.01, s = index)
                 
     return intersectionPoints
@@ -301,10 +312,10 @@ def main(ROI, orientation = None):
         orientation = getOrientation(ROI)
         
     drawROI(ROI)
-    scanLines = getScanLines(ROI, orientation, display=False)
+    scanLines = getScanLines(ROI, orientation, display=True)
     ROILines = getROILines(ROI)
-    intersectionPoints = getIntersectionPoints(ROILines, scanLines, display=False)
-    waypoints = getWaypoints(intersectionPoints, display=True)
+    intersectionPoints = getIntersectionPoints(ROILines, scanLines, display=True)
+    waypoints = getWaypoints(intersectionPoints, display=False)
     #print(intersectionPoints)
     
 
