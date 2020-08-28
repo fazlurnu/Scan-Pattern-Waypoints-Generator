@@ -95,6 +95,21 @@ def getROILines(ROI):
 
     return ROILines
 
+class scanLine:
+    def __init__(self, point1, point2):
+        self.line = [point1, point2]
+        self.intersectionPoints = []
+        
+    def addIntersectionPoints(self, point):
+        self.intersectionPoints.append(point)
+            
+    def getIntersectionPoints(self):
+        sortedIntersectionPoints = sorted(self.intersectionPoints, key=lambda e: (distance(self.line[0], e)))
+        rReturn sortedIntersectionPoints
+    
+    def getLine(self):
+        return self.line
+    
 def getScanLines(ROI, orientation, display = False):
     scanLinesTop = []
     scanLinesDown = []
@@ -111,9 +126,12 @@ def getScanLines(ROI, orientation, display = False):
     xStart2 = xStart1 + length * cos(orientation)
     yStart2 = yStart1 + length * sin(orientation)
     
-    line1 = [(xStart1 ,yStart1), (xStart2, yStart2)]
+    point1 = (xStart1, yStart1)
+    point2 = (xStart2, yStart2)
     
-    scanLinesTop.append(line1)
+    scanLine1 = scanLine(point1, point2)
+    
+    scanLinesTop.append(scanLine1)
     
     maxDistance = 0
     for point in ROI:
@@ -121,29 +139,36 @@ def getScanLines(ROI, orientation, display = False):
         if (distPoint2Centroid > maxDistance):
             maxDistance = distPoint2Centroid
         
-    outerScanLines1 = scanLinesTop[0]
+    outerScanLines1 = scanLinesTop[0].getLine()
     distanceScanlineToCentroid = getDistanceLineToPoint(outerScanLines1, centroidPoint)
     
     while (distanceScanlineToCentroid < maxDistance):
-        scanLinesTop.append([])
-        scanLinesDown.append([])
         counter += 1
         
-        for point in line1:
+        pointBegin = (0,0)
+        pointEnd = (0,0)
+        pointInLine = []
+        
+        for i, point in enumerate(scanLine1.line):
             x1, y1 = point
             x2 = x1 + counter * clearance * cos(orientation + M_PI/2)
             y2 = y1 + counter * clearance * sin(orientation + M_PI/2)
             
-            scanLinesTop[-1].append((x2, y2))
+            pointInLine.append((x2, y2))
             
-        for point in line1:
+        scanLinesTop.append(scanLine(pointInLine[0], pointInLine[1]))
+        
+        pointInLine = []
+        for i, point in enumerate(scanLine1.line):
             x1, y1 = point
             x2 = x1 - counter * clearance * cos(orientation + M_PI/2)
             y2 = y1 - counter * clearance * sin(orientation + M_PI/2)
             
-            scanLinesDown[-1].append((x2, y2))
+            pointInLine.append((x2, y2))
         
-        outerScanLines1 = scanLinesTop[-1]
+        scanLinesDown.append(scanLine(pointInLine[0], pointInLine[1]))
+                
+        outerScanLines1 = scanLinesTop[-1].getLine()
         distanceScanlineToCentroid = abs(getDistanceLineToPoint(outerScanLines1, centroidPoint))
         
     scanLinesTopReversed = []
@@ -153,6 +178,8 @@ def getScanLines(ROI, orientation, display = False):
         
     if (display):
         for i, line in enumerate(scanLinesTopReversed):
+            line = line.getLine()
+            
             x = (line[0][0], line[1][0])
             y = (line[0][1], line[1][1])
             plt.plot(x, y, "-b.", linewidth = 2, markersize = 10)
@@ -164,6 +191,8 @@ def getScanLines(ROI, orientation, display = False):
             plt.text(x[0]+0.01, y[0]+0.01, s = index)
             
         for i, line in enumerate(scanLinesDown):
+            line = line.getLine()
+            
             x = (line[0][0], line[1][0])
             y = (line[0][1], line[1][1])
             plt.plot(x, y, "-g.", linewidth = 2, markersize = 10)
@@ -244,9 +273,9 @@ def getIntersectionPoints(ROILines, scanLines, display = False):
     
     for i in range(len(scanLines)):
         for j in range(len(ROILines)):
-            intersectionPoint = getIntersectionPoint(scanLines[i], ROILines[j])
+            intersectionPoint = getIntersectionPoint(scanLines[i].getLine(), ROILines[j])
             
-            cond = pointIsInScanLine(intersectionPoint, scanLines[i])
+            cond = pointIsInScanLine(intersectionPoint, scanLines[i].getLine())
             cond2 = pointIsInScanLine(intersectionPoint, ROILines[j])
             
             if (cond and cond2):
@@ -259,17 +288,17 @@ def getIntersectionPoints(ROILines, scanLines, display = False):
                         isInIntersectionPoints = isInIntersectionPoints or True
                         
                 if (not isInIntersectionPoints):
+                    scanLines[i].addIntersectionPoints(intersectionPoint)
                     intersectionPoints.append(intersectionPoint)
                 
                 if (display):
                     plt.plot(intersectionPoint[0], intersectionPoint[1], "g*")
                 
                     index = str(i) + ", " + str(j)
-                    print(intersectionPoint)
                     plt.text(intersectionPoint[0]+0.01, intersectionPoint[1]+0.01, s = index)
                 
     return intersectionPoints
-
+    
 def getWaypoints(intersectionPoints, display = True):
     waypoints = []
     counter = 1
@@ -317,6 +346,9 @@ def main(ROI, orientation = None):
     intersectionPoints = getIntersectionPoints(ROILines, scanLines, display=True)
     waypoints = getWaypoints(intersectionPoints, display=False)
     #print(intersectionPoints)
+    
+    for point in scanLines:
+        print(point.getIntersectionPoints())
     
 
         
